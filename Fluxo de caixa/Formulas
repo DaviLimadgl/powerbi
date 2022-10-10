@@ -1,1 +1,29 @@
+##criando a tabela calendario
 
+Calendario = CALENDARAUTO()
+
+##tabela medidas
+
+Ano Anterior = CALCULATE(Medidas[Valor Total], SAMEPERIODLASTYEAR(Calendario[Data]))
+
+Categorias de Entrada = var tipo = CALCULATE([Total de Categorias], FILTER('Diário', 'Diário'[Tipo] = "Entrada"))
+return IF(tipo <> 0, tipo, 0)
+
+Categorias de Saída = var tipo  = CALCULATE([Total de Categorias], FILTER('Diário', 'Diário'[Tipo] = "Saída"))
+return if(tipo <> 0, tipo, 0 )
+
+Entradas = calculate( sum('Diário'[Movimentação]), FILTER('Diário', 'Diário'[Tipo] = "Entrada"))
+
+Saídas = calculate( [Valor Total], FILTER('Diário', 'Diário'[Tipo] = "Saída"))
+
+Saldo em Caixa = [Entradas] - [Saídas]
+
+Total de Categorias = DISTINCTCOUNT('Diário'[Categoria])
+
+Total de Entradas = CALCULATE([Total De transações], FILTER('Diário', 'Diário'[Tipo] = "Entrada"))
+
+Total de Saídas = CALCULATE([Total De transações], FILTER('Diário', 'Diário'[Tipo] = "Saída"))
+
+Total De transações = COUNTROWS('Diário') 
+
+Valor Total = SUM('Diário'[Movimentação]) 
