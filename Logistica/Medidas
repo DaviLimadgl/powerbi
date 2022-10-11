@@ -1,0 +1,29 @@
+## medidas DAX:
+
+% In Full = [Qnt In Full]/[Notas Fiscais] 
+
+% On Time = [Qnt On Time]/ [Notas Fiscais]
+
+Faturamento = SUM(NotasFiscais[TotalNotaFiscal])
+
+Notas Fiscais = COUNTROWS(NotasFiscais) 
+
+OTIFF = Medidas[% In Full] * Medidas[% On Time]
+
+Peso Bruto = SUM(NotasFiscais[PesoBruto])
+
+Qnt In Full = CALCULATE([Notas Fiscais], NotasFiscais[Full Delivery] = "In Full")
+
+Qnt On Time =CALCULATE([Notas Fiscais], NotasFiscais[OnTimeDelivery] = "On Time")
+
+Tempo Médio de Entregas = AVERAGE(NotasFiscais[TempodeEntrega])
+
+Volume Expedido = SUM(NotasFiscais[Volumes])
+
+##Indicadores:
+
+Indicador = {
+    ("OTIFF", NAMEOF('Medidas'[OTIFF]), 0),
+    ("% In Full", NAMEOF('Medidas'[% In Full]), 1),
+    ("% On Time", NAMEOF('Medidas'[% On Time]), 2)
+}
