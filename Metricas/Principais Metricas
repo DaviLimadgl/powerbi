@@ -31,6 +31,18 @@ Abertos Neste Mês = CALCULATE(COUNT(relatorio[Data de abertura]),  Calendario[A
 ## filtra soma total pela string 
 pgm m3 = CALCULATE(Medidas[Soma Total], CONTAINSSTRING('Movimentações'[historico] , "m3 contabilidade"))
 
+## retorna o mes anterior com o percentual
+Mes Anterior = 
+    VAR MesAnterior = CALCULATE([Media do Dolar], DATEADD('Calendário'[Data], -1,MONTH))
+    RETURN if('Medidas Dolar'[Media do Dolar]<> 0 && MesAnterior <>0, DIVIDE('Medidas Dolar'[Media do Dolar], MesAnterior, 0)-1, BLANK())
+
+
+
+## Compara mesmo periodo do ano anterior
+Ano Anterior = CALCULATE(Medidas[Valor Total], SAMEPERIODLASTYEAR(Calendario[Data]))
+
+
+
 
 
 
