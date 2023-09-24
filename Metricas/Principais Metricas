@@ -1,0 +1,58 @@
+## DAX
+
+
+## Exibe redimentos do mes atual
+Recebidos mês atual = CALCULATE([Rendimentos],Calendario[Ano]= YEAR(TODAY()) && Calendario[Mês] = MONTH( TODAY()))
+
+## Patrimonio total até o mes anterior
+Patrimonio Consolidado = CALCULATE(SUMX(Medidas, [Total em Ações]+ [Total em FIIs]), Calendario[Ano]= YEAR(TODAY()) && Calendario[Mês] = MONTH( TODAY())-1  )
+
+## numero de FIIs do mes mais recente
+Num de FIIs = CALCULATE(Medidas[Número de FIIs],DATEADD(FILTER(DATESMTD('FII'[Data] ),'FII'[Data] < TODAY()),0,MONTH))
+
+## chamados encerrados do mes anterior
+Mes anterior = CALCULATE([Chamados Encerrados], DATEADD(Calendario[Data], -1, MONTH))
+
+## chamados encerrados no mes atual usando relaciomento desativado da tabela
+## calendario com a tabela relatorio
+Encerrados Neste Mês = CALCULATE(COUNT(relatorio[Data de Fechamento]), USERELATIONSHIP(Calendario[Data],relatorio[Data de Fechamento]), 
+    FILTER(Calendario, Calendario[Data] <>BLANK() && Calendario[Ano]= YEAR(TODAY()) && Calendario[Mês] = MONTH( TODAY())))
+
+## filtra os chamados encerrados no dia atual
+Encerrados hoje = CALCULATE(COUNT(relatorio[Data de Fechamento]), FILTER(relatorio, relatorio[Data de Fechamento] = TODAY()))
+
+## filtra os chamados Abertos no dia atual
+Abertos hoje = CALCULATE(COUNT(relatorio[Data de abertura]),  FILTER(relatorio, relatorio[Data de abertura] = TODAY()))
+
+
+## filtra os chamados Abertos no mes atual
+Abertos Neste Mês = CALCULATE(COUNT(relatorio[Data de abertura]),  Calendario[Ano]= YEAR(TODAY()) && Calendario[Mês] = MONTH( TODAY()))
+
+## filtra soma total pela string 
+pgm m3 = CALCULATE(Medidas[Soma Total], CONTAINSSTRING('Movimentações'[historico] , "m3 contabilidade"))
+
+
+
+
+
+## M 
+
+
+##Montando uma tabela calendario com M
+## Usando esta forma, o dia atual fica omitido da tabela, então adicionei um +1 em list.Dates para compensar a falha
+let
+dataInicial = #date(2019, 1, 1),
+dataFinal = DateTime.Date(DateTime.LocalNow()) ,
+numeroDias = Duration.Days(dataFinal - dataInicial),
+listaDatas = List.Dates(dataInicial, numeroDias+1, #duration(1, 0, 0, 0)),
+    #"Convertido para Tabela" = Table.FromList(listaDatas, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+    #"Tipo Alterado" = Table.TransformColumnTypes(#"Convertido para Tabela",{{"Column1", type date}}),
+    #"Colunas Renomeadas" = Table.RenameColumns(#"Tipo Alterado",{{"Column1", "Data"}}),
+    #"Ano Inserido" = Table.AddColumn(#"Colunas Renomeadas", "Ano", each Date.Year([Data]), Int64.Type),
+    #"Mês Inserido" = Table.AddColumn(#"Ano Inserido", "Mês", each Date.Month([Data]), Int64.Type),
+    #"Colunas Reordenadas" = Table.ReorderColumns(#"Mês Inserido",{"Data", "Mês", "Ano"}),
+    #"Nome do Dia Inserido" = Table.AddColumn(#"Colunas Reordenadas", "Nome do Dia", each Date.DayOfWeekName([Data]), type text),
+    #"Nome do Mês Inserido" = Table.AddColumn(#"Nome do Dia Inserido", "Nome do Mês", each Date.MonthName([Data]), type text),
+    #"Dia Inserido" = Table.AddColumn(#"Nome do Mês Inserido", "Dia", each Date.Day([Data]), Int64.Type)
+in
+    #"Dia Inserido"
