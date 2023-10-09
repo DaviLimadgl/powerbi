@@ -41,11 +41,36 @@ Mes Anterior =
 ## Compara mesmo periodo do ano anterior
 Ano Anterior = CALCULATE(Medidas[Valor Total], SAMEPERIODLASTYEAR(Calendario[Data]))
 
+## Tempo de duração minutos hras etc
+Tempo Duração = 
+
+        VAR hora = INT(SUM(TabelaPrincipal[Duração Horas Real]))
+        VAR minutos = INT((SUM(TabelaPrincipal[Duração Horas Real])- hora) * 60)
+        VAR segundos = ROUND(((SUM(TabelaPrincipal[Duração Horas Real]) -hora) *60 - minutos) * 60,0)
+
+        return VALUE(hora & minutos & segundos)
+
+Tempo de Atraso = 
+
+        VAR tempo = CALCULATE(SUM(TabelaPrincipal[Tempo de atraso]), DISTINCT(TabelaPrincipal[Id]))
+        VAR horas = INT(tempo / 3600)
+        VAR minutos = INT((tempo - (horas * 3600)) / 60)
+        VAR segundos = MOD(tempo, 60)
+
+        return 
+        (horas * 10000 + minutos * 100 + segundos) / Medidas[Número de linhas]
+
+## preenche a coluna
+#
 
 
+Produtos = // essa formula preenche os espaços vazios da coluna, agrupando pelo id
+        VAR p = TabelaPrincipal[Id]
+
+        VAR result = CALCULATE(MAX(TabelaPrincipal[Produto]), FILTER(TabelaPrincipal, TabelaPrincipal[Id] = p))
 
 
-
+        RETURN result
 
 ## M 
 
@@ -68,3 +93,42 @@ listaDatas = List.Dates(dataInicial, numeroDias+1, #duration(1, 0, 0, 0)),
     #"Dia Inserido" = Table.AddColumn(#"Nome do Mês Inserido", "Dia", each Date.Day([Data]), Int64.Type)
 in
     #"Dia Inserido"
+
+    ## Horas
+
+let
+    Lista = {0..86399},
+    ConverteParaTabela = Table.FromList(Lista, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+    AlteraTipo = Table.TransformColumnTypes(ConverteParaTabela,{{"Column1", Int64.Type}}),
+    AlteraNomeCol = Table.RenameColumns(AlteraTipo,{{"Column1", "Segundo"}}),
+    ColDuracao = Table.AddColumn(AlteraNomeCol,"Duração", each #duration(0,0,0,[Segundo]), type duration),
+    ColHora = Table.AddColumn(ColDuracao, "Hora", each #time(Duration.Hours([Duração]),Duration.Minutes([Duração]),Duration.Seconds([Duração])), type time),
+    RemoveCols = Table.RemoveColumns(ColHora,{"Duração", "Segundo"}),
+    ColHoraNum = Table.AddColumn(RemoveCols, "Hora Num", each Time.Hour([Hora]), Int64.Type),
+    ColMinutoNum = Table.AddColumn(ColHoraNum, "Minuto Num", each Time.Minute([Hora]), Int64.Type),
+    ColSegundoNum = Table.AddColumn(ColMinutoNum, "Segundo Num", each Time.Second([Hora]), Int64.Type),
+    ColAMPM = Table.AddColumn(ColSegundoNum,"AMPM", each if [Hora Num] < 12 then "AM" else "PM", type text),
+    ColHoraAMPM = Table.AddColumn(ColAMPM, "Hora AMPM", each 
+        if [Hora Num] = 0 then "12 AM"
+        else if [Hora Num] >= 1 and [Hora Num] <= 11 then Number.ToText([Hora Num]) & " AM" 
+        else if [Hora Num] = 12 then "12 PM"
+        else if [Hora Num] >= 13 then Number.ToText([Hora Num] - 12) & " PM"  
+        else "Unknown", type text),
+    ColPeriodo = 
+        Table.AddColumn(ColHoraAMPM, "Período", each 
+            if        [Hora Num] >= 0 and [Hora Num] <= 5 then "MADRUGADA"
+            else if   [Hora Num] >= 6 and [Hora Num] <= 11 then "MANHÃ"
+            else if   [Hora Num] >= 12 and [Hora Num] <= 17  then "TARDE"
+            else if   [Hora Num] >= 18 and [Hora Num] <= 23 then "NOITE"
+            else "Unknown", type text
+            ),
+    ColPeriodoOrdem = 
+        Table.AddColumn(ColPeriodo, "Período Ordem", each 
+            if        [Hora Num] >= 0 and [Hora Num] <= 5 then 1
+            else if   [Hora Num] >= 6 and [Hora Num] <= 11 then 2
+            else if   [Hora Num] >= 12 and [Hora Num] <= 17  then 3
+            else if   [Hora Num] >= 18 and [Hora Num] <= 23 then 4
+            else 5, Int64.Type
+        )
+in
+    ColPeriodoOrdem
